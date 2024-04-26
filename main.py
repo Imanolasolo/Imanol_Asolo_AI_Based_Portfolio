@@ -1,5 +1,60 @@
 import streamlit as st
+from PyPDF2 import PdfReader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
+from langchain.chat_models import ChatOpenAI 
+from htmlTemplates import css, bot_template, user_template
+import os
 import subprocess
+
+def get_pdf_text(pdf_list):
+    text = ""
+    for pdf in pdf_list:
+        pdf_reader = PdfReader(pdf)
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+    return text
+
+def get_text_chunks(text):
+    text_splitter = CharacterTextSplitter(
+        separator="\n",
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len,
+    )
+    chunks = text_splitter.split_text(text)
+    return chunks
+
+def get_vector_store(text_chunks):
+    if not text_chunks:
+        st.warning("Please upload the textual PDF file - this is PDF files of image")
+        return None
+    embeddings = OpenAIEmbeddings(openai_api_key=st.secrets["OPEN_AI_APIKEY"])
+    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+    return vectorstore
+
+def get_conversation_chain(vector_store):
+    llm = ChatOpenAI(openai_api_key=st.secrets["OPEN_AI_APIKEY"])
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    conversation_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vector_store.as_retriever(),
+        memory=memory
+    )
+    return conversation_chain
+
+def handle_userInput(user_question):
+    response = st.session_state.conversation({'question': user_question})
+    st.session_state.chat_history = response['chat_history']
+
+    for i, msg in enumerate(st.session_state.chat_history):
+        if i % 2 == 0:
+            st.write(user_template.replace("{{MSG}}", msg.content), unsafe_allow_html=True)
+        else:
+            st.write(bot_template.replace("{{MSG}}", msg.content), unsafe_allow_html=True)
 
 def main():
     st.set_page_config(page_title="Imanol Asolo portfolio", page_icon=":clipboard:")
@@ -16,8 +71,10 @@ def main():
         "Skills": render_skills,
         "Projects": render_projects,
         "Contact": render_contact,
-        "Chat wih Imanol AI": render_chat
+        "Chat with Imanol Asolo´s bot": render_chat,
     }
+
+    #st.sidebar.markdown('<a href="https://imanol-asolo-ai-chat.streamlit.app/" target="_blank">Chat with Imanol Asolo´s AI</a>', unsafe_allow_html=True)
 
     # Renderizar la lista de enlaces como botones
     for opcion, render_func in menu.items():
@@ -124,9 +181,7 @@ def render_contact():
         st.markdown('<a href="https://www.linkedin.com/in/imanolasolo/">Find me on Linkedin!</a>', unsafe_allow_html=True)
 
 def render_chat():
-    file_route = "app.py"
-    command = f"streamlit run app.py"
-    subprocess.Popen(command, shell=True)
+    st.markdown('<a href="https://imanol-asolo-ai-chat.streamlit.app/">Chat with Imanol Asolo´s AI</a>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
