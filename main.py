@@ -132,10 +132,10 @@ def render_projects():
             st.write("Click the button below to download the AI Medicare presentation.")
         download_pdf_ai_medicare()
     with col3:
-        st.image("Chatbotter_logo.png", width=100)
+        st.image("Botarmy_logo.png", width=100)
         if __name__ == "__main__":
-            st.write("Click the button below to download the Chatbotter challenge presentation.")
-        #download_pdf_raptor_eye()
+            st.write("Click the button below to download the Botarmy-Hub presentation.")
+        download_pdf_botarmy()
 
 def download_pdf_raptor_eye():
     # Here you can put the code to generate or fetch the PDF file
@@ -158,6 +158,18 @@ def download_pdf_ai_medicare():
         label="Download PDF",
         data=pdf_bytes,
         file_name="AI_medicare_pres.pdf",
+        mime="application/pdf",
+        )
+    
+def download_pdf_botarmy():
+    # Here you can put the code to generate or fetch the PDF file
+    
+    with open("Botarmy_pres.pdf", "rb") as file:
+        pdf_bytes = file.read()
+    st.download_button(
+        label="Download PDF",
+        data=pdf_bytes,
+        file_name="Botarmy_pres.pdf",
         mime="application/pdf",
         )
            
